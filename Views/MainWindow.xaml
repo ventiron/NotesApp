@@ -1,0 +1,139 @@
+﻿<Window x:Class="NotesApp.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:mod ="clr-namespace:NotesApp.Models"
+        xmlns:VM="clr-namespace:NotesApp.ViewModels"
+        xmlns:cnvr="clr-namespace:NotesApp.Views.Converters"
+        xmlns:local="clr-namespace:NotesApp"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+
+    <Window.InputBindings>
+        <KeyBinding Gesture="CTRL+S" Command="{Binding Save_Command}"/>
+    </Window.InputBindings>
+    
+    <Window.Resources>
+        <cnvr:MultilineToSingleLineConverter x:Key="MultilineToSingleLineConverter"/>
+
+        <Style TargetType="TextBox">
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        
+        <Style TargetType="ListBox">
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="10,1,0,0"/>
+                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
+        <!--Шаблон отображения данных для заметок-->
+        <DataTemplate DataType="{x:Type mod:Note}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Grid.Row="0" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding Text, Converter={StaticResource MultilineToSingleLineConverter}}" Grid.Column="0" Grid.Row="1" TextTrimming="CharacterEllipsis"/>
+                <Button Content="X" Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=DataContext.DeleteNote_Command}"
+                        CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorLevel=1,
+                        AncestorType={x:Type ListBoxItem}}, Path=DataContext}" Grid.Column="1" Grid.Row="0" Grid.RowSpan="2" 
+                        Background="Transparent" BorderBrush="Transparent"/>
+            </Grid>
+            <!--</Border>-->
+        </DataTemplate>
+
+        <!--Шаблон отображения данных для групп заметок-->
+        <DataTemplate DataType="{x:Type mod:Group}">
+            <Expander x:Name="Parent">
+                <Expander.Header>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox Grid.Column="0" BorderThickness="0" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding StringFormat=': {0}', Path=Notes.Count}" TextTrimming="CharacterEllipsis"/>
+                        <Button Grid.Column="2" Content="+" Background="Transparent" BorderBrush="Transparent" Command="{Binding
+                            RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type Window}},  Path=DataContext.AddNote_Command}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ContentPresenter}},
+                            Path=DataContext}" VerticalContentAlignment="Top" Padding="0,-2,0,0" FontSize="15"/>
+                        <Button Grid.Column="3" Content="-" Background="Transparent" BorderBrush="Transparent" Command="{Binding
+                            RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type Window}},  Path=DataContext.DeleteGroup_Command}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ContentPresenter}},
+                            Path=DataContext}" VerticalContentAlignment="Top" Padding="0,-2,0,0" FontSize="15"/>
+                    </Grid>
+                </Expander.Header>
+
+                <ListBox ItemsSource="{Binding Notes}" BorderThickness="0" SelectedItem="{Binding DataContext.SelectedNote,
+                             RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Window}},
+                             UpdateSourceTrigger=PropertyChanged}" PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown" 
+                             Drop="ListBox_Drop" AllowDrop="True" Width="{Binding ElementName=Parent, Path=Width}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+
+            </Expander>
+        </DataTemplate>
+
+    </Window.Resources>
+
+
+    <Window.DataContext>
+        <VM:MainViewModel/>
+    </Window.DataContext>
+
+
+    <!--Начало проекта-->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition Height="0.1*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.3*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <!--Разделитель между списком и содержимым-->
+        <GridSplitter Grid.Column="1" Width="3" HorizontalAlignment="Center" Grid.RowSpan="2" HorizontalContentAlignment="Stretch"/>
+        <!--Список всех заметок-->
+        <ScrollViewer>
+        <ItemsControl  ItemsSource="{Binding groups}" BorderThickness="0" Grid.Column="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+                       HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch"/>
+        </ScrollViewer>
+        <!--Содержимое заметок-->
+        <Grid Grid.ColumnSpan="1" Grid.RowSpan="2" Grid.Column="2" DataContext="{Binding SelectedNote}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="0.3*"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <StackPanel>
+                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="{Binding StringFormat='{}Время создания записи: {0:dd/MM/yyyy}, точное время: {0:HH:mm}', Path=Date}"/>
+            </StackPanel>
+            <DockPanel Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True"
+                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            </DockPanel>
+        </Grid>
+        <Button Content="+" FontSize="30" Padding="0,-6,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Row="1" Command="{Binding AddGroup_Command}"
+                Background="Transparent" BorderBrush="Transparent"/>
+    </Grid>
+</Window>
